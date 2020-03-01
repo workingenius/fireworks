@@ -28,14 +28,33 @@
     function Framework() {
         this.fragmentLst = [];
 
+        var lx = window.innerWidth / 2;
+        var ly = window.innerHeight / 2;
+
+        // 爆炸产生的弹片数量
         var fragCount = (Math.floor(Math.random() * 20)) + 20;
         for (var i = 0; i < fragCount; i++) {
-            this.fragmentLst.push(Fragment.randomFragmentAt(
-                window.innerWidth / 2, window.innerHeight / 2
-            ));
+            var randStrength = 20 + Math.random() * 20;
+            var randv = randomVelocity(randStrength);  // random velocity
+            var randr = Math.random() * 4 + 10;  // random radius
+            var frag = new Fragment(lx, ly, randv.x, randv.y, randr);
+            this.fragmentLst.push(frag);
         }
 
         this.timestamp = Date.now();
+    }
+
+    /**
+     * 生辰随机速度
+     * @param strength 速度矢量模
+     * @returns {x: x方向分量, y: y方向分量}
+     * */
+    function randomVelocity(strength) {
+        var randAng = Math.PI * 2 * Math.random();  // 0 到 2pi 随机角度
+        return {
+            x: Math.cos(randAng) * strength,
+            y: Math.sin(randAng) * strength,
+        };
     }
 
     Framework.prototype.draw = function (timestamp) {
@@ -57,7 +76,7 @@
         this.ly = ly;  // location y
         this.vx = vx;  // velocity x
         this.vy = vy;  // velocity y
-        this.ra = ra;
+        this.ra = ra;  // fragment radius
     }
 
     /**
@@ -87,11 +106,4 @@
         return this.ra < 1;
     };
 
-    Fragment.randomFragmentAt = function (x, y) {
-        return new Fragment(
-            x, y,
-            (Math.random() - 0.5) * 100, (Math.random() - 0.5) * 100, 
-            14 + (Math.random() - 0.5) * 5
-        );
-    };
 })();
