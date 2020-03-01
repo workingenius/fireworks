@@ -3,33 +3,45 @@
 
     var canvas = null;
     var c = null;
-    var framework;
+    var fireworks = [];
 
     window.onload = function () {
         canvas = document.querySelector('canvas');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         c = canvas.getContext('2d');
-
-        framework = new Framework();
         animate();
+
+        setInterval(function () {
+            if (Math.random() < 0.2) {
+                fireworks.push(new Firework());
+            }
+            console.log(fireworks.length);
+        }, 1000);
     };
 
     function animate() {
         c.clearRect(0, 0, window.innerWidth, window.innerHeight);
         c.fillRect(0, 0, window.innerWidth, window.innerHeight, 'black');
-        framework.draw(Date.now());
+        
+        fireworks.forEach(function (firework) {
+            firework.draw(Date.now());
+        });
+        fireworks = fireworks.filter(function (firework) {
+            return !firework.isGone();
+        });
+        
         window.requestAnimationFrame(animate);
     }
 
     /**
      * 一次礼花爆炸
      */
-    function Framework() {
+    function Firework() {
         this.fragmentLst = [];
 
-        var lx = window.innerWidth / 2;
-        var ly = window.innerHeight / 2;
+        var lx = Math.random() * window.innerWidth;
+        var ly = Math.random() * window.innerHeight / 2;
 
         // 爆炸产生的弹片数量
         var fragCount = (Math.floor(Math.random() * 20)) + 20;
@@ -57,7 +69,7 @@
         };
     }
 
-    Framework.prototype.draw = function (timestamp) {
+    Firework.prototype.draw = function (timestamp) {
         var timeDiff = (timestamp - this.timestamp) * 0.001;
         this.fragmentLst.forEach(function (frag, i) {
             frag.draw(timeDiff);
@@ -66,6 +78,10 @@
             return !frag.isGone();
         });
         this.timestamp = timestamp;
+    };
+
+    Firework.prototype.isGone = function () {
+        return this.fragmentLst.length <= 0;
     };
 
     /**
