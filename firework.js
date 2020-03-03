@@ -15,7 +15,7 @@
         animate();
 
         setInterval(function () {
-            if (Math.random() < 0.2) {
+            if (Math.random() < 0.8) {
                 fireworks.push(new Firework());
             }
             console.log(fireworks.length);
@@ -49,11 +49,11 @@
         var ly = Math.random() * window.innerHeight / 2;
 
         // 爆炸产生的弹片数量
-        var fragCount = (Math.floor(Math.random() * 20)) + 20;
+        var fragCount = (Math.floor(Math.random() * 20)) + 180;
         for (var i = 0; i < fragCount; i++) {
-            var randStrength = 80 + Math.random() * 20;
+            var randStrength = 80 + Math.random() * 5;
             var randv = randomVelocity(randStrength);  // random velocity
-            var randr = Math.random() * 2 + 4;  // random radius
+            var randr = Math.random() * 2 + 2;  // random radius
             var frag = new Fragment(lx, ly, randv.x, randv.y, randr);
             this.fragmentLst.push(frag);
         }
@@ -65,11 +65,21 @@
      * @returns {x: x方向分量, y: y方向分量}
      * */
     function randomVelocity(strength) {
-        var randAng = Math.PI * 2 * Math.random();  // 0 到 2pi 随机角度
-        return {
-            x: Math.cos(randAng) * strength,
-            y: Math.sin(randAng) * strength,
-        };
+        var s = 10;
+        var r = 1000;
+        var d = 10000;
+        var u = Math.random();
+        var v = Math.random();
+        var phi = 2 * Math.PI * u;
+        var the = Math.acos(2 * v - 1);
+        var sinPhi = Math.sin(phi);
+        var cosPhi = Math.cos(phi);
+        var sinThe = Math.sin(the);
+        var cosThe = Math.cos(the);
+        var under = sinThe * sinPhi * r + d;
+        var x = s * (sinThe * cosPhi * r) / under;
+        var y = s * cosThe * r / under;
+        return {x: x * strength, y: y * strength};
     }
 
     /**
