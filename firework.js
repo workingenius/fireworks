@@ -1,15 +1,17 @@
 (function() {
-    var GRAVITY = 9.8;
+    var GRAVITY = 9.8 * 3;
 
     var canvas = null;
     var c = null;
     var fireworks = [];
+    var lastTimestamp = null;
 
     window.onload = function () {
         canvas = document.querySelector('canvas');
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
         c = canvas.getContext('2d');
+        lastTimestamp = Date.now() * 0.001;
         animate();
 
         setInterval(function () {
@@ -21,17 +23,20 @@
     };
 
     function animate() {
+        var now = Date.now() * 0.001;
+
         c.clearRect(0, 0, window.innerWidth, window.innerHeight);
         c.fillRect(0, 0, window.innerWidth, window.innerHeight, 'black');
         
         fireworks.forEach(function (firework) {
-            firework.draw(Date.now());
+            firework.draw(now - lastTimestamp);
         });
         fireworks = fireworks.filter(function (firework) {
             return !firework.isGone();
         });
         
         window.requestAnimationFrame(animate);
+        lastTimestamp = now;
     }
 
     /**
@@ -46,14 +51,12 @@
         // 爆炸产生的弹片数量
         var fragCount = (Math.floor(Math.random() * 20)) + 20;
         for (var i = 0; i < fragCount; i++) {
-            var randStrength = 20 + Math.random() * 20;
+            var randStrength = 80 + Math.random() * 20;
             var randv = randomVelocity(randStrength);  // random velocity
-            var randr = Math.random() * 4 + 10;  // random radius
+            var randr = Math.random() * 2 + 4;  // random radius
             var frag = new Fragment(lx, ly, randv.x, randv.y, randr);
             this.fragmentLst.push(frag);
         }
-
-        this.timestamp = Date.now();
     }
 
     /**
@@ -69,15 +72,17 @@
         };
     }
 
-    Firework.prototype.draw = function (timestamp) {
-        var timeDiff = (timestamp - this.timestamp) * 0.001;
+    /**
+     * 重绘一次爆炸的当前样子
+     * @param timeDiff 离上一次重绘过了多少秒
+     */
+    Firework.prototype.draw = function (timeDiff) {
         this.fragmentLst.forEach(function (frag, i) {
             frag.draw(timeDiff);
         });
         this.fragmentLst = this.fragmentLst.filter(function (frag) {
             return !frag.isGone();
         });
-        this.timestamp = timestamp;
     };
 
     Firework.prototype.isGone = function () {
@@ -87,21 +92,29 @@
     /**
      * 礼花弹的一个弹片
      */
-    function Fragment(lx, ly, vx, vy, ra) {
+    function Fragment(lx, ly, vx, vy, ra, ttl) {
         this.lx = lx;  // location x
         this.ly = ly;  // location y
         this.vx = vx;  // velocity x
         this.vy = vy;  // velocity y
         this.ra = ra;  // fragment radius
+        this.ttl = ttl || (Math.random() * 1 + 3);  // time to life (in seconds)
     }
 
     /**
-     * 重绘当前弹片，离上一次重绘过了 timeDiff 秒
+     * 重绘当前弹片
+     * @param timeDiff 离上一次重绘过了 timeDiff 秒
      */
     Fragment.prototype.draw = function (timeDiff) {
+        this.ttl -= timeDiff;
+
         this.lx += (this.vx * timeDiff);
         this.ly += (this.vy * timeDiff);
         this.vy = this.vy + GRAVITY * timeDiff;
+
+        if (this.ttl <= 2) {
+            this.ra = this.ra * 0.99;
+        }
 
         c.save();
         c.beginPath();
@@ -110,16 +123,13 @@
         c.fill();
         // c.fillRect(this.lx, this.ly, this.ra, this.ra);
         c.restore();
-
-        this.ra = this.ra * 0.99;
-        // console.log(this.ra);
     };
 
     /**
      * 这片礼花弹是否已经看不见了
      */
     Fragment.prototype.isGone = function () {
-        return this.ra < 1;
+        return (this.ttl <= 0) || (this.ra <= 3);
     };
 
 })();
