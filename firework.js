@@ -49,9 +49,9 @@
         var ly = Math.random() * window.innerHeight / 2;
 
         // 爆炸产生的弹片数量
-        var fragCount = (Math.floor(Math.random() * 20)) + 180;
+        var fragCount = (Math.floor(Math.random() * 20)) + 480;
         for (var i = 0; i < fragCount; i++) {
-            var randStrength = 80 + Math.random() * 5;
+            var randStrength = 80 + Math.random() * 3;
             var randv = randomVelocity(randStrength);  // random velocity
             var randr = Math.random() * 2 + 2;  // random radius
             var frag = new Fragment(lx, ly, randv.x, randv.y, randr);
