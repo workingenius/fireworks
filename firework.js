@@ -16,7 +16,7 @@
 
         setInterval(function () {
             if (Math.random() < 0.8) {
-                if (fireworks.length < 1) {
+                if (fireworks.length < 3) {
                     fireworks.push(new Firework());
                 }
             }
@@ -49,6 +49,7 @@
 
         var lx = Math.random() * window.innerWidth;
         var ly = Math.random() * window.innerHeight / 2;
+        var randc = randomColor();
 
         // 爆炸产生的弹片数量
         var fragCount = (Math.floor(Math.random() * 10)) + 100;
@@ -56,7 +57,7 @@
             var randStrength = 200 + Math.random() * 3;
             var randv = randomVelocity(randStrength);  // random velocity
             var randr = Math.random() * 1 + 3;  // random radius
-            var frag = new Fragment(lx, ly, randv.x, randv.y, randr);
+            var frag = new Fragment(lx, ly, randv.x, randv.y, randr, null, randc.r, randc.g, randc.b);
             this.fragmentLst.push(frag);
         }
     }
@@ -84,6 +85,17 @@
         return {x: x * strength, y: y * strength};
     }
 
+    /** 
+     * 生成随机颜色
+     * @returns {r, g, b}
+     */
+    function randomColor() {
+        var r = Math.random() * 255;
+        var g = Math.random() * 255;
+        var b = Math.random() * 255;
+        return {r: r, g: g, b: b};
+    }
+
     /**
      * 重绘一次爆炸的当前样子
      * @param timeDiff 离上一次重绘过了多少秒
@@ -108,13 +120,18 @@
     /**
      * 礼花弹的一个弹片
      */
-    function Fragment(lx, ly, vx, vy, ra, ttl) {
+    function Fragment(lx, ly, vx, vy, ra, ttl, r, g, b) {
         this.lx = lx;  // location x
         this.ly = ly;  // location y
         this.vx = vx;  // velocity x
         this.vy = vy;  // velocity y
         this.ra = ra;  // fragment radius
         this.ttl = ttl || (Math.random() * 0.5 + 2.2);  // time to life (in seconds)
+        // 弹片颜色 r 分量，g 分量， b 分量
+        this.r = r;
+        this.g = g;
+        this.b = b;
+        this.color = rgb(r, g, b);
         this.tail = [];
         this.isBurnUp = false;  // 是否已烧完
     }
@@ -128,7 +145,7 @@
         if (!this.isBurnUp) {
             c.save();
             c.beginPath();
-            c.fillStyle = 'yellow';
+            c.fillStyle = this.color;
             c.arc(this.lx, this.ly, this.ra, 0, Math.PI * 2);
             c.fill();
             c.restore();
@@ -154,7 +171,7 @@
             }
     
             // new tail spot
-            this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, 255, 255, 0));
+            this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, this.r, this.g, this.b));
         }
 
         // 不论是否烧完，尾巴都需迭代重绘，并把已经消散的尾巴片段去掉
