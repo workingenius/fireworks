@@ -20,7 +20,6 @@
                     fireworks.push(new Firework());
                 }
             }
-            console.log(fireworks.length);
         }, 1000);
     };
 
@@ -174,10 +173,12 @@
             this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, this.r, this.g, this.b));
         }
 
+        c.save();
         // 不论是否烧完，尾巴都需迭代重绘，并把已经消散的尾巴片段去掉
         this.tail.forEach(function (ts, i) {
             ts.draw(timeDiff);
         });
+        c.restore();
         this.tail = this.tail.filter(function (ts) {
             return !ts.isGone();
         });
@@ -208,7 +209,6 @@
     }
 
     TailSpot.prototype.draw = function (timeDiff) {
-        c.save();
         c.strokeStyle = rgb(this.r * this.light, this.g * this.light, this.b * this.light);
         c.lineWidth = this.ra;
         c.lineCap = 'round';
@@ -216,7 +216,6 @@
         c.moveTo(this.lx0, this.ly0);
         c.lineTo(this.lx1, this.ly1);
         c.stroke();
-        c.restore();
 
         this.ra = this.ra * 0.96;
         this.light = this.light * 0.94;
