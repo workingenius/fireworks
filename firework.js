@@ -56,7 +56,7 @@
             var randStrength = 200 + Math.random() * 3;
             var randv = randomVelocity(randStrength);  // random velocity
             var randr = Math.random() * 1 + 3;  // random radius
-            var frag = new Fragment(lx, ly, randv.x, randv.y, randr, null, randc.r, randc.g, randc.b);
+            var frag = new Fragment(lx, ly, randv.x, randv.y, randr, null, randc);
             this.fragmentLst.push(frag);
         }
     }
@@ -84,17 +84,6 @@
         return {x: x * strength, y: y * strength};
     }
 
-    /** 
-     * 生成随机颜色
-     * @returns {r, g, b}
-     */
-    function randomColor() {
-        var r = Math.random() * 255;
-        var g = Math.random() * 255;
-        var b = Math.random() * 255;
-        return {r: r, g: g, b: b};
-    }
-
     /**
      * 重绘一次爆炸的当前样子
      * @param timeDiff 离上一次重绘过了多少秒
@@ -119,7 +108,7 @@
     /**
      * 礼花弹的一个弹片
      */
-    function Fragment(lx, ly, vx, vy, ra, ttl, r, g, b) {
+    function Fragment(lx, ly, vx, vy, ra, ttl, color) {
         this.lx = lx;  // location x
         this.ly = ly;  // location y
         this.vx = vx;  // velocity x
@@ -127,10 +116,8 @@
         this.ra = ra;  // fragment radius
         this.ttl = ttl || (Math.random() * 0.5 + 2.2);  // time to life (in seconds)
         // 弹片颜色 r 分量，g 分量， b 分量
-        this.r = r;
-        this.g = g;
-        this.b = b;
-        this.color = rgb(r, g, b);
+        this.color = color;
+        this.colorStyle = colorToStyle(colorLighter(color, 0.5));
         this.tail = [];
         this.isBurnUp = false;  // 是否已烧完
     }
@@ -144,7 +131,7 @@
         if (!this.isBurnUp) {
             c.save();
             c.beginPath();
-            c.fillStyle = this.color;
+            c.fillStyle = this.colorStyle;
             c.arc(this.lx, this.ly, this.ra, 0, Math.PI * 2);
             c.fill();
             c.restore();
@@ -170,7 +157,7 @@
             }
     
             // new tail spot
-            this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, this.r, this.g, this.b));
+            this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, this.color));
         }
 
         c.save();
@@ -196,20 +183,19 @@
      * 每个光点实际上是弹片轨迹中间的一小段直线，因为采样率非常高，看起来非常平滑
      * 每一小段的亮度不同，导致看起来整条轨迹弧线的亮度是均匀变化的，制造出尾巴逐渐消散的效果
      * */
-    function TailSpot(lx0, ly0, lx1, ly1, ra, r, g, b) {
+    function TailSpot(lx0, ly0, lx1, ly1, ra, color) {
         this.lx0 = lx0;  // 起始位置 x 分量
         this.ly0 = ly0;  // 起始位置 y 分量
         this.lx1 = lx1;  // 终止位置 x 分量
         this.ly1 = ly1;  // 终止位置 y 分量
         this.ra = ra;    // 线段宽度
         this.light = 1;  // 亮度，1 为全亮，0 为全消散
-        this.r = r;  // 当前颜色 r 分量
-        this.g = g;  // 当前颜色 g 分量
-        this.b = b;  // 当前颜色 b 分量
+        this.color = color;
     }
 
     TailSpot.prototype.draw = function (timeDiff) {
-        c.strokeStyle = rgb(this.r * this.light, this.g * this.light, this.b * this.light);
+        var color = colorDarker(this.color, this.light);
+        c.strokeStyle = colorToStyle(color);
         c.lineWidth = this.ra;
         c.lineCap = 'round';
         c.beginPath();
@@ -228,8 +214,41 @@
         return this.light < 0.2 || this.ra < 1;
     }
 
-    function rgb(r, g, b) {
-        return 'rgb(' + r + ',' + g + ',' + b + ')';
+    /** 
+     * 生成随机颜色
+     * @returns {r, g, b}
+     */
+    function randomColor() {
+        var r = Math.random() * 255;
+        var g = Math.random() * 255;
+        var b = Math.random() * 255;
+        return {r: r, g: g, b: b};
+    }
+
+    function colorToStyle(c) {
+        return 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+    }
+
+    /**
+     * 颜色变暗
+     */
+    function colorDarker(color, rate) {
+        return {
+            r: color.r * rate,
+            g: color.g * rate,
+            b: color.b * rate,
+        };
+    }
+
+    /**
+     * 颜色变亮
+     */
+    function colorLighter(color, rate) {
+        return {
+            r: 255 - ((255 - color.r) * rate),
+            g: 255 - ((255 - color.g) * rate),
+            b: 255 - ((255 - color.b) * rate),
+        };
     }
 
 })();
