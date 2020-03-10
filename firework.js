@@ -21,6 +21,8 @@
                 }
             }
         }, 1000);
+
+        // setInterval(animate, 40);
     };
 
     function animate() {
@@ -51,7 +53,7 @@
         var randc = randomColor();
 
         // 爆炸产生的弹片数量
-        var fragCount = (Math.floor(Math.random() * 10)) + 100;
+        var fragCount = (Math.floor(Math.random() * 10)) + 20;
         for (var i = 0; i < fragCount; i++) {
             var randStrength = 200 + Math.random() * 3;
             var randv = randomVelocity(randStrength);  // random velocity
@@ -150,7 +152,7 @@
             var lx1 = this.lx, ly1 = this.ly;
     
             if (this.ttl <= 2) {
-                this.ra = this.ra * 0.9;
+                this.ra = this.ra * Math.pow(0.1, timeDiff);
             }
             if (this.ttl <= 0 || this.ra < 1.5) {
                 this.isBurnUp = true;
@@ -203,8 +205,8 @@
         c.lineTo(this.lx1, this.ly1);
         c.stroke();
 
-        this.ra = this.ra * 0.96;
-        this.light = this.light * 0.94;
+        this.ra = this.ra * Math.pow(0.5, timeDiff);
+        this.light = this.light * Math.pow(0.01, timeDiff);
         
     };
 
