@@ -1,8 +1,16 @@
 (function() {
-    var GRAVITY = 9.8 * 6;
+    /*
+     * Firework simulation, with html5 canvas
+     *
+     * When an EXPLOTION occurs in the sky, many STARs burst out in every direction.
+     * A STAR may be followed by a LIGHT TRAIL.
+     */
 
+    
     var canvas = null;
-    var c = null;
+    var c = null;  // canvas context
+
+    var GRAVITY = 9.8 * 6;
     var fireworks = [];
     var lastTimestamp = null;
 
@@ -17,7 +25,7 @@
         setInterval(function () {
             if (Math.random() < 0.8) {
                 if (fireworks.length < 3) {
-                    fireworks.push(new Firework());
+                    fireworks.push(new Explosion());
                 }
             }
         }, 1000);
@@ -43,30 +51,29 @@
     }
 
     /**
-     * 一次礼花爆炸
+     * An Explosion is composed of many stars with different velocity and maybe different colors.
      */
-    function Firework() {
-        this.fragmentLst = [];
+    function Explosion() {
+        this.starLst = [];
 
         var lx = Math.random() * window.innerWidth;
         var ly = Math.random() * window.innerHeight / 2;
         var randc = randomColor();
 
-        // 爆炸产生的弹片数量
-        var fragCount = (Math.floor(Math.random() * 10)) + 20;
-        for (var i = 0; i < fragCount; i++) {
+        var starCount = (Math.floor(Math.random() * 10)) + 20;
+        for (var i = 0; i < starCount; i++) {
             var randStrength = 200 + Math.random() * 3;
             var randv = randomVelocity(randStrength);  // random velocity
             var randr = Math.random() * 1 + 3;  // random radius
-            var frag = new Fragment(lx, ly, randv.x, randv.y, randr, null, randc);
-            this.fragmentLst.push(frag);
+            var frag = new Star(lx, ly, randv.x, randv.y, randr, null, randc);
+            this.starLst.push(frag);
         }
     }
 
     /**
-     * 生成随机速度
-     * @param strength 速度矢量模
-     * @returns {x: x方向分量, y: y方向分量}
+     * make a random velocity, simulating the visual effect of a sphere explosion
+     * @param strength velocity vector length
+     * @returns {x, y}
      * */
     function randomVelocity(strength) {
         var s = 10;
@@ -87,49 +94,48 @@
     }
 
     /**
-     * 重绘一次爆炸的当前样子
-     * @param timeDiff 离上一次重绘过了多少秒
+     * draw the explosion on the canvas
+     * @param timeDiff seconds after the last draw
      */
-    Firework.prototype.draw = function (timeDiff) {
-        this.fragmentLst.forEach(function (frag, i) {
-            frag.drawTail(timeDiff);
+    Explosion.prototype.draw = function (timeDiff) {
+        this.starLst.forEach(function (star, i) {
+            star.drawLightTrail(timeDiff);
         });
-        this.fragmentLst.forEach(function (frag, i) {
-            frag.draw(timeDiff);
+        this.starLst.forEach(function (star, i) {
+            star.draw(timeDiff);
         });
-        this.fragmentLst = this.fragmentLst.filter(function (frag) {
-            return !frag.isGone();
+        this.starLst = this.starLst.filter(function (star) {
+            return !star.isGone();
         });
     };
 
-    /** 这次爆炸是否已经完全看不见了 */
-    Firework.prototype.isGone = function () {
-        return this.fragmentLst.length <= 0;
+    /** check if the explosion is totally over and can't be seen any longer */
+    Explosion.prototype.isGone = function () {
+        return this.starLst.length <= 0;
     };
 
     /**
-     * 礼花弹的一个弹片
+     * A Star, and its following light track
      */
-    function Fragment(lx, ly, vx, vy, ra, ttl, color) {
+    function Star(lx, ly, vx, vy, ra, ttl, color) {
         this.lx = lx;  // location x
         this.ly = ly;  // location y
         this.vx = vx;  // velocity x
         this.vy = vy;  // velocity y
-        this.ra = ra;  // fragment radius
-        this.ttl = ttl || (Math.random() * 0.5 + 2.2);  // time to life (in seconds)
-        // 弹片颜色 r 分量，g 分量， b 分量
+        this.ra = ra;  // star radius
+        this.ttl = ttl || (Math.random() * 0.5 + 2.2);  // time to live (in seconds)
         this.color = color;
         this.colorStyle = colorToStyle(colorLighter(color, 0.5));
-        this.tail = [];
-        this.isBurnUp = false;  // 是否已烧完
+        this.lightTrail = [];
+        this.isBurnUp = false;
     }
 
     /**
-     * 重绘当前弹片
-     * @param timeDiff 离上一次重绘过了 timeDiff 秒
+     * draw the star on the canvas
+     * @param timeDiff seconds after the last draw
      */
-    Fragment.prototype.draw = function (timeDiff) {
-        // 只有尚未烧完时，才需重绘
+    Star.prototype.draw = function (timeDiff) {
+        // only need to draw before it's burnt up
         if (!this.isBurnUp) {
             c.save();
             c.beginPath();
@@ -140,8 +146,8 @@
         }
     };
 
-    Fragment.prototype.drawTail = function (timeDiff) {
-        // 尚未烧完时，迭代状态，并留下尾巴上的一点
+    Star.prototype.drawLightTrail = function (timeDiff) {
+        // before burnt up, step on to the next state
         if (!this.isBurnUp) {
             this.ttl -= timeDiff;
     
@@ -158,44 +164,48 @@
                 this.isBurnUp = true;
             }
     
-            // new tail spot
-            this.tail.push(new TailSpot(lx0, ly0, lx1, ly1, this.ra, this.color));
+            // leave a new light trail segment
+            this.lightTrail.push(new LTSegment(lx0, ly0, lx1, ly1, this.ra, this.color));
         }
 
+        // draw the light trail and release those are gone
         c.save();
-        // 不论是否烧完，尾巴都需迭代重绘，并把已经消散的尾巴片段去掉
-        this.tail.forEach(function (ts, i) {
+        this.lightTrail.forEach(function (ts, i) {
             ts.draw(timeDiff);
         });
         c.restore();
-        this.tail = this.tail.filter(function (ts) {
+        this.lightTrail = this.lightTrail.filter(function (ts) {
             return !ts.isGone();
         });
     };
 
-    /** 这片礼花弹是否已经看不见了 */
-    Fragment.prototype.isGone = function () {
-        // 当自己本身已经烧完，尾巴全部消散，则完全看不见了
-        return this.isBurnUp && this.tail.length <= 0;
+    /** check the star is over or not */
+    Star.prototype.isGone = function () {
+        // burnt up, and the whole light trail is gone
+        return this.isBurnUp && this.lightTrail.length <= 0;
     };
 
     /**
-     * 弹片尾巴上的光点
+     * Light Trail Segment
      * 
-     * 每个光点实际上是弹片轨迹中间的一小段直线，因为采样率非常高，看起来非常平滑
-     * 每一小段的亮度不同，导致看起来整条轨迹弧线的亮度是均匀变化的，制造出尾巴逐渐消散的效果
+     * A light trail is composed of many short straight segments.
+     * When frames goes fast, it looks as a curve trailing a star.
+     * 
      * */
-    function TailSpot(lx0, ly0, lx1, ly1, ra, color) {
-        this.lx0 = lx0;  // 起始位置 x 分量
-        this.ly0 = ly0;  // 起始位置 y 分量
-        this.lx1 = lx1;  // 终止位置 x 分量
-        this.ly1 = ly1;  // 终止位置 y 分量
-        this.ra = ra;    // 线段宽度
-        this.light = 1;  // 亮度，1 为全亮，0 为全消散
+    function LTSegment(lx0, ly0, lx1, ly1, ra, color) {
+        // segment start point
+        this.lx0 = lx0;
+        this.ly0 = ly0;
+        // segment end point
+        this.lx1 = lx1;
+        this.ly1 = ly1;
+        // segment width
+        this.ra = ra;
+        this.light = 1;  // 1 for totally light，0 for totally dark
         this.color = color;
     }
 
-    TailSpot.prototype.draw = function (timeDiff) {
+    LTSegment.prototype.draw = function (timeDiff) {
         var color = colorDarker(this.color, this.light);
         c.strokeStyle = colorToStyle(color);
         c.lineWidth = this.ra;
@@ -210,14 +220,14 @@
         
     };
 
-    /** 尾巴上的这一小片段是否已经完全消散 */
-    TailSpot.prototype.isGone = function () {
-        // 亮度非常低，或者宽度非常小时，几乎看不见
+    /** check the segment is unseen or not */
+    LTSegment.prototype.isGone = function () {
+        // a segment is gone when it is almost dark or small enough
         return this.light < 0.2 || this.ra < 1;
     }
 
     /** 
-     * 生成随机颜色
+     * make a random color
      * @returns {r, g, b}
      */
     function randomColor() {
@@ -231,9 +241,6 @@
         return 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
     }
 
-    /**
-     * 颜色变暗
-     */
     function colorDarker(color, rate) {
         return {
             r: color.r * rate,
@@ -242,9 +249,6 @@
         };
     }
 
-    /**
-     * 颜色变亮
-     */
     function colorLighter(color, rate) {
         return {
             r: 255 - ((255 - color.r) * rate),
